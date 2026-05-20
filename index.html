@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ocupación — Equipo Data</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3347;--text:#e8eaf0;--muted:#8892a4;--accent:#4f8ef7;--green:#34d399;--red:#f87171;--amber:#fbbf24;--teal:#2dd4bf;--purple:#a78bfa;--font:'Inter','Segoe UI',system-ui,sans-serif}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}
+  .shell{display:flex;min-height:100vh}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+  .sidebar-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+  .sidebar-brand h1{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text)}
+  .sidebar-brand p{font-size:11px;color:var(--muted);margin-top:3px}
+  .sidebar-brand .gen{font-size:10px;color:#555e6e;margin-top:2px}
+  .nav{padding:10px 0;flex:1}
+  .nav-section{padding:8px 18px 4px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;color:var(--muted);cursor:pointer;font-size:12.5px;border-left:2px solid transparent;transition:all .15s}
+  .nav-item:hover{color:var(--text);background:var(--surface2)}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(79,142,247,.08)}
+  .nav-item .icon{font-size:15px;width:18px;text-align:center}
+  .main{margin-left:220px;flex:1;padding:0;min-width:0}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+  .topbar h2{font-size:15px;font-weight:600}
+  .topbar-meta{display:flex;gap:16px;align-items:center}
+  .badge{padding:3px 10px;border-radius:3px;font-size:11px;font-weight:600}
+  .badge-blue{background:rgba(79,142,247,.15);color:var(--accent)}
+  .badge-green{background:rgba(52,211,153,.15);color:var(--green)}
+  .badge-red{background:rgba(248,113,113,.15);color:var(--red)}
+  .badge-amber{background:rgba(251,191,36,.15);color:var(--amber)}
+  .page{display:none;padding:24px 28px}
+  .page.active{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
+  .kpi{background:var(--surface);border:1px solid var(--border);padding:16px;position:relative;overflow:hidden}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .kpi.blue::before{background:var(--accent)}.kpi.green::before{background:var(--green)}.kpi.red::before{background:var(--red)}.kpi.amber::before{background:var(--amber)}.kpi.teal::before{background:var(--teal)}.kpi.purple::before{background:var(--purple)}
+  .kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .kpi-value{font-size:26px;font-weight:700;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+  .kpi.blue .kpi-value{color:var(--accent)}.kpi.green .kpi-value{color:var(--green)}.kpi.red .kpi-value{color:var(--red)}.kpi.amber .kpi-value{color:var(--amber)}.kpi.teal .kpi-value{color:var(--teal)}.kpi.purple .kpi-value{color:var(--purple)}
+  .kpi-sub{font-size:10.5px;color:var(--muted)}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .grid-half{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px}
+  .card{background:var(--surface);border:1px solid var(--border);overflow:hidden}
+  .card-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .card-body{padding:16px 18px}
+  .card-body.no-pad{padding:0}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead tr{background:var(--surface2)}
+  th{padding:9px 12px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--surface2)}
+  .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'Courier New',monospace}
+  .pill{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10.5px;font-weight:600;white-space:nowrap}
+  .pill-red{background:rgba(248,113,113,.15);color:var(--red)}.pill-amber{background:rgba(251,191,36,.15);color:var(--amber)}.pill-green{background:rgba(52,211,153,.15);color:var(--green)}.pill-blue{background:rgba(79,142,247,.15);color:var(--accent)}.pill-gray{background:rgba(136,146,164,.12);color:var(--muted)}.pill-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+  .bar-wrap{display:flex;align-items:center;gap:8px;min-width:120px}
+  .bar-track{flex:1;height:5px;background:var(--border);overflow:hidden}
+  .bar-fill{height:100%;transition:width .4s}
+  .bar-label{font-size:11px;color:var(--muted);width:38px;text-align:right;font-variant-numeric:tabular-nums}
+  .chart-wrap{position:relative}
+  .alert-row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px}
+  .alert-row:last-child{border-bottom:none}
+  .alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .dot-red{background:var(--red)}.dot-amber{background:var(--amber)}.dot-green{background:var(--green)}.dot-gray{background:var(--muted)}
+  .alert-name{font-weight:600;width:160px;flex-shrink:0}
+  .alert-hrs{color:var(--muted);width:50px;text-align:right;font-variant-numeric:tabular-nums}
+  .alert-bar{flex:1}
+  .section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .delta-up{color:var(--red);font-weight:600}.delta-down{color:var(--green);font-weight:600}.delta-flat{color:var(--muted)}
+  .heat-grid{display:grid;grid-template-columns:170px repeat(5,1fr) 64px 72px;gap:1px;background:var(--border)}
+  .heat-cell{padding:8px 6px;text-align:center;font-size:11.5px;font-variant-numeric:tabular-nums;background:var(--surface)}
+  .heat-cell.name{text-align:left;padding-left:12px;font-weight:500}
+  .heat-cell.header{background:var(--surface2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .table-scroll{overflow-x:auto}
+  .footer-note{font-size:10.5px;color:var(--muted);padding:12px 18px;border-top:1px solid var(--border)}
+  @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Data Traffic</h1>
+    <p id="meta-semana">Cargando...</p>
+    <div class="gen" id="meta-gen"></div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Análisis</div>
+    <div class="nav-item active" onclick="showPage('overview',this)"><span class="icon">◉</span> Resumen Ejecutivo</div>
+    <div class="nav-item" onclick="showPage('equipo',this)"><span class="icon">◈</span> Ocupación Equipo</div>
+    <div class="nav-item" onclick="showPage('marcas',this)"><span class="icon">◇</span> Por Marca / Cliente</div>
+    <div class="nav-item" onclick="showPage('entregables',this)"><span class="icon">◆</span> Tipo Entregable</div>
+    <div class="nav-section">Control</div>
+    <div class="nav-item" onclick="showPage('alertas',this)"><span class="icon">△</span> Alertas</div>
+    <div class="nav-item" onclick="showPage('tendencia',this)"><span class="icon">⟋</span> Tendencia Semanal</div>
+  </div>
+</nav>
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Resumen Ejecutivo</h2>
+    <div class="topbar-meta">
+      <span class="badge badge-blue" id="badge-mes">—</span>
+      <span class="badge badge-green" id="badge-perfiles">—</span>
+      <span class="badge badge-red" id="badge-sobre">—</span>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="page-overview" class="page active">
+    <div class="kpi-grid">
+      <div class="kpi blue"><div class="kpi-label">Horas registradas</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub" id="kpi-total-sub">—</div></div>
+      <div class="kpi green"><div class="kpi-label">Prom hrs/sem equipo</div><div class="kpi-value" id="kpi-prom">—</div><div class="kpi-sub">Capacidad: 40h/sem</div></div>
+      <div class="kpi teal"><div class="kpi-label">% Ocupación global</div><div class="kpi-value" id="kpi-pct">—</div><div class="kpi-sub">vs capacidad</div></div>
+      <div class="kpi red"><div class="kpi-label">Sobre-ocupados</div><div class="kpi-value" id="kpi-sobre">—</div><div class="kpi-sub">semana activa · >40h</div></div>
+      <div class="kpi amber"><div class="kpi-label">Con tiempo libre</div><div class="kpi-value" id="kpi-libres">—</div><div class="kpi-sub">semana activa &lt;32h</div></div>
+      <div class="kpi purple"><div class="kpi-label">Hrs contratadas/mes</div><div class="kpi-value" id="kpi-contrat">—</div><div class="kpi-sub">portafolio activo</div></div>
+    </div>
+    <div class="grid-half">
+      <div class="card"><div class="card-header"><span class="card-title">Ocupación por perfil — semana activa</span><span class="badge badge-blue">referencia actual</span></div><div class="card-body no-pad"><div id="alerts-list"></div><div class="footer-note">Capacidad: 40h/sem · Sobre-ocupación: >44h · Crítico: >48h</div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Distribución por tipo de actividad</span></div><div class="card-body"><div class="chart-wrap" style="height:240px"><canvas id="chartTipo"></canvas></div></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><span class="card-title">Consumo por marca</span><span class="badge badge-amber">top 8</span></div><div class="card-body"><div class="chart-wrap" style="height:220px"><canvas id="chartMarca"></canvas></div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Tendencia semanal — total equipo</span></div><div class="card-body"><div class="chart-wrap" style="height:220px"><canvas id="chartTendencia"></canvas></div></div></div>
+    </div>
+  </div>
+
+  <!-- EQUIPO -->
+  <div id="page-equipo" class="page">
+    <div style="margin-bottom:16px">
+      <div class="section-title">Mapa de calor — Horas por día · semana activa</div>
+      <div class="card"><div class="card-body no-pad">
+        <div class="heat-grid"><div class="heat-cell header name">Perfil</div><div class="heat-cell header">Lunes</div><div class="heat-cell header">Martes</div><div class="heat-cell header">Miércoles</div><div class="heat-cell header">Jueves</div><div class="heat-cell header">Viernes</div><div class="heat-cell header">Total</div><div class="heat-cell header">% Cap</div></div>
+        <div id="heat-map"></div>
+      </div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><span class="card-title">Horas totales por perfil</span></div><div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chartEquipoTotal"></canvas></div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Distribución de carga por día</span></div><div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chartRadar"></canvas></div></div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">Detalle por perfil</span></div><div class="card-body no-pad table-scroll"><table><thead><tr><th>Perfil</th><th class="num">Total hrs</th><th class="num">Sem activa</th><th class="num">Prom/Sem</th><th>Estado</th><th>Marcas asignadas</th></tr></thead><tbody id="tabla-equipo"></tbody></table></div></div>
+  </div>
+
+  <!-- MARCAS -->
+  <div id="page-marcas" class="page">
+    <div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Consumo vs. Horas Contratadas por marca</span></div><div class="card-body"><div class="chart-wrap" style="height:280px"><canvas id="chartMarcaDetalle"></canvas></div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Tabla de rentabilidad y consumo</span></div><div class="card-body no-pad table-scroll"><table><thead><tr><th>Marca</th><th class="num">Contratadas/mes</th><th class="num">Sem 1</th><th class="num">Sem 2</th><th class="num">Sem 3</th><th class="num">Total</th><th class="num">% Consumo</th><th class="num">Disponibles</th><th>Estado</th><th>Tipo</th></tr></thead><tbody id="tabla-marcas"></tbody></table></div></div>
+  </div>
+
+  <!-- ENTREGABLES -->
+  <div id="page-entregables" class="page">
+    <div class="grid-2" style="margin-bottom:0">
+      <div class="card"><div class="card-header"><span class="card-title">Horas por tipo de actividad</span></div><div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chartTipoBar"></canvas></div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Mix de actividades por perfil</span></div><div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chartTipoStack"></canvas></div></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="card-header"><span class="card-title">Detalle por tipo</span></div><div class="card-body no-pad table-scroll"><table><thead><tr><th>Tipo</th><th class="num">Total hrs</th><th class="num">% total</th><th class="num">Sem 1</th><th class="num">Sem 2</th><th class="num">Sem 3</th><th>Tendencia</th><th>Clasificación</th></tr></thead><tbody id="tabla-tipos"></tbody></table></div></div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div id="page-alertas" class="page">
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><span class="card-title">⚠ Perfiles sobre-ocupados</span></div><div class="card-body no-pad"><table><thead><tr><th>Perfil</th><th class="num">Hrs/Sem</th><th class="num">Exceso</th><th class="num">% Cap</th><th>Alerta</th></tr></thead><tbody id="tabla-sobre"></tbody></table></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">📉 Cuentas sub-utilizadas</span></div><div class="card-body no-pad"><table><thead><tr><th>Marca</th><th class="num">Contratadas</th><th class="num">Consumidas</th><th class="num">% Consumo</th><th>Riesgo</th></tr></thead><tbody id="tabla-sub"></tbody></table></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="card-header"><span class="card-title">Concentración por perfil — dependencia de marca principal</span></div><div class="card-body no-pad table-scroll"><table><thead><tr><th>Perfil</th><th>Marca principal</th><th class="num">Hrs en marca</th><th class="num">Total hrs</th><th class="num">% Concentración</th><th class="num"># Marcas</th><th>Riesgo</th></tr></thead><tbody id="tabla-concentracion"></tbody></table></div><div class="footer-note">Alta concentración: >70% en una sola marca · Diversificado: &lt;50%</div></div>
+  </div>
+
+  <!-- TENDENCIA -->
+  <div id="page-tendencia" class="page">
+    <div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Evolución semanal por perfil</span></div><div class="card-body"><div class="chart-wrap" style="height:300px"><canvas id="chartTendenciaPersona"></canvas></div></div></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><span class="card-title">Variación S1 → S2 por persona</span></div><div class="card-body"><div class="chart-wrap" style="height:240px"><canvas id="chartDelta"></canvas></div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Consumo semanal por marca — top 8</span></div><div class="card-body"><div class="chart-wrap" style="height:240px"><canvas id="chartMarcaSem"></canvas></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const DATA = {"perfiles": [{"nombre": "Nicolas Tibatá", "s1": 143.5, "s2": 51.5, "dias": {"L": 13.0, "M": 11.0, "X": 10.0, "J": 10.0, "V": 7.5}, "marcas": ["BAV Pulse", "Growth", "Licitación", "honda", "lifemiles"]}, {"nombre": "Juan Osorio", "s1": 116.0, "s2": 34.0, "dias": {"L": 7.5, "M": 9.0, "X": 9.0, "J": 8.5, "V": 0.0}, "marcas": ["honda", "wework"]}, {"nombre": "Juan Amorocho", "s1": 93.0, "s2": 46.5, "dias": {"L": 11.0, "M": 9.5, "X": 9.0, "J": 9.0, "V": 8.0}, "marcas": ["compensar", "constructora capital"]}, {"nombre": "Esteban Caicedo", "s1": 87.0, "s2": 44.5, "dias": {"L": 10.0, "M": 9.0, "X": 8.0, "J": 9.5, "V": 8.0}, "marcas": ["Licitación", "compensar", "constructora capital", "honda", "lifemiles", "novartis", "wework"]}, {"nombre": "Jonathan Otalvaro", "s1": 9.0, "s2": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}, "marcas": ["Little Caesars"]}, {"nombre": "Rafael Vergara", "s1": 84.5, "s2": 48.0, "dias": {"L": 10.0, "M": 10.0, "X": 10.0, "J": 9.0, "V": 9.0}, "marcas": ["Growth", "Licitación", "Little Caesars", "Makro", "adidas", "exeltis", "novartis"]}, {"nombre": "Mariana Calderón", "s1": 129.0, "s2": 46.5, "dias": {"L": 6.0, "M": 11.5, "X": 11.0, "J": 8.0, "V": 10.0}, "marcas": ["lifemiles"]}, {"nombre": "Eduardo Mejía", "s1": 114.0, "s2": 40.0, "dias": {"L": 14.0, "M": 9.0, "X": 0.0, "J": 9.0, "V": 8.0}, "marcas": ["BAV Pulse", "Prime Video", "abbott", "adidas"]}, {"nombre": "Mateo Acosta", "s1": 78.0, "s2": 43.0, "dias": {"L": 6.0, "M": 15.0, "X": 6.0, "J": 8.0, "V": 8.0}, "marcas": ["VALIDAR", "adidas", "ford", "mall plaza", "seguros alfa"]}, {"nombre": "Valentina Albán", "s1": 0.0, "s2": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}, "marcas": []}], "marcas": [{"nombre": "honda", "contrat": null, "s1": 105.0, "s2": 90.5, "s3": 56.0, "tipo": "Retainer"}, {"nombre": "lifemiles", "contrat": null, "s1": 48.5, "s2": 57.0, "s3": 43.0, "tipo": "Retainer"}, {"nombre": "adidas", "contrat": null, "s1": 37.0, "s2": 31.0, "s3": 15.0, "tipo": "Retainer"}, {"nombre": "compensar", "contrat": null, "s1": 27.0, "s2": 27.5, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "BAV Pulse", "contrat": null, "s1": 29.0, "s2": 4.0, "s3": 11.0, "tipo": "Interno"}, {"nombre": "constructora capital", "contrat": null, "s1": 20.0, "s2": 22.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "Prime Video", "contrat": null, "s1": 1.5, "s2": 20.0, "s3": 16.0, "tipo": "Pitch"}, {"nombre": "ford", "contrat": null, "s1": 15.5, "s2": 21.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "Makro", "contrat": null, "s1": 6.5, "s2": 22.0, "s3": 3.0, "tipo": "Parcial"}, {"nombre": "wework", "contrat": null, "s1": 15.0, "s2": 14.0, "s3": 0.5, "tipo": "Parcial"}, {"nombre": "exeltis", "contrat": null, "s1": 3.0, "s2": 12.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "Little Caesars", "contrat": null, "s1": 12.5, "s2": 0.0, "s3": 0.0, "tipo": "Pitch"}, {"nombre": "seguros alfa", "contrat": null, "s1": 6.5, "s2": 5.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "novartis", "contrat": null, "s1": 7.0, "s2": 4.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "mall plaza", "contrat": null, "s1": 4.5, "s2": 5.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "abbott", "contrat": null, "s1": 0.0, "s2": 9.0, "s3": 0.0, "tipo": "Retainer"}, {"nombre": "Growth", "contrat": null, "s1": 1.5, "s2": 2.0, "s3": 5.0, "tipo": "Interno"}, {"nombre": "Licitación", "contrat": null, "s1": 6.5, "s2": 1.0, "s3": 0.0, "tipo": "Interno"}, {"nombre": "VALIDAR", "contrat": null, "s1": 0.0, "s2": 2.0, "s3": 0.0, "tipo": "Otro"}], "tipos": [{"tipo": "Entregable", "total": 479.0, "s1": 195.5, "s2": 227.5, "s3": 56.0, "clasif": "Core productivo"}, {"tipo": "Dashboard", "total": 127.5, "s1": 65.5, "s2": 36.5, "s3": 25.5, "clasif": "Visual/Análisis"}, {"tipo": "Reunión", "total": 103.0, "s1": 44.0, "s2": 49.5, "s3": 9.5, "clasif": "No productivo"}, {"tipo": "Actualización", "total": 103.0, "s1": 29.5, "s2": 32.5, "s3": 41.0, "clasif": "Mantenimiento"}, {"tipo": "Infraestructura", "total": 32.5, "s1": 15.0, "s2": 4.0, "s3": 13.5, "clasif": "Técnico base"}, {"tipo": "Automatización", "total": 5.0, "s1": 0.0, "s2": 0.0, "s3": 5.0, "clasif": "Alto valor"}, {"tipo": "Informe", "total": 4.0, "s1": 0.0, "s2": 4.0, "s3": 0.0, "clasif": "Reporte"}], "concentracion": [{"perfil": "Nicolas Tibatá", "marcaPrincipal": "honda", "hrsMarca": 100.0, "total": 140.5, "nMarcas": 5}, {"perfil": "Juan Osorio", "marcaPrincipal": "honda", "hrsMarca": 113.5, "total": 116.0, "nMarcas": 2}, {"perfil": "Juan Amorocho", "marcaPrincipal": "compensar", "hrsMarca": 53.0, "total": 91.0, "nMarcas": 2}, {"perfil": "Esteban Caicedo", "marcaPrincipal": "honda", "hrsMarca": 38.0, "total": 83.0, "nMarcas": 7}, {"perfil": "Jonathan Otalvaro", "marcaPrincipal": "Little Caesars", "hrsMarca": 9.0, "total": 9.0, "nMarcas": 1}, {"perfil": "Rafael Vergara", "marcaPrincipal": "Makro", "hrsMarca": 31.5, "total": 84.5, "nMarcas": 7}, {"perfil": "Mariana Calderón", "marcaPrincipal": "lifemiles", "hrsMarca": 129.0, "total": 129.0, "nMarcas": 1}, {"perfil": "Eduardo Mejía", "marcaPrincipal": "adidas", "hrsMarca": 47.5, "total": 114.0, "nMarcas": 4}, {"perfil": "Mateo Acosta", "marcaPrincipal": "ford", "hrsMarca": 36.5, "total": 78.0, "nMarcas": 5}], "kpis": {"total_horas": 854.0, "prom_sem": 39.3, "pct_ocup": 79.1, "sobre": 6, "libres": 0, "contrat_total": 0, "n_perfiles": 9, "n_semanas": 3, "sobre_sem": 6}, "meta": {"semana_activa": "Semana 3", "mes": "Mayo 2026", "generado": "20/05/2026 12:11"}};
+
+const COLORS={blue:'#4f8ef7',green:'#34d399',red:'#f87171',amber:'#fbbf24',teal:'#2dd4bf',purple:'#a78bfa',pink:'#f472b6',orange:'#fb923c',indigo:'#818cf8',cyan:'#22d3ee',lime:'#a3e635',rose:'#fb7185'};
+const PALETTE=Object.values(COLORS);
+
+function fmt1(n){return typeof n==='number'?n.toFixed(1):n}
+function fmtPct(n){return typeof n==='number'?(n*100).toFixed(1)+'%':n}
+
+const pageTitles={overview:'Resumen Ejecutivo',equipo:'Ocupación del Equipo',marcas:'Análisis por Marca / Cliente',entregables:'Análisis por Tipo de Entregable',alertas:'Alertas y Concentración',tendencia:'Tendencia Semanal'};
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent=pageTitles[id];
+}
+
+function statusPill(hrs){
+  if(hrs>48)return'<span class="pill pill-red">🔴 Crítico >48h</span>';
+  if(hrs>44)return'<span class="pill pill-red">🟠 Alto >44h</span>';
+  if(hrs>40)return'<span class="pill pill-amber">🟡 Sobre >40h</span>';
+  if(hrs>=32)return'<span class="pill pill-green">🟢 Normal</span>';
+  if(hrs>0)return'<span class="pill pill-blue">🔵 Disponible</span>';
+  return'<span class="pill pill-gray">⚪ Sin datos</span>';
+}
+
+function heatColor(hrs){
+  if(hrs>10)return'rgba(248,113,113,.18)';
+  if(hrs>8)return'rgba(251,191,36,.18)';
+  if(hrs>5)return'rgba(52,211,153,.12)';
+  if(hrs>0)return'rgba(79,142,247,.10)';
+  return'transparent';
+}
+
+function barHTML(pct,color='#4f8ef7'){
+  const w=Math.min(100,pct*100);
+  return`<div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div><div class="bar-label">${(pct*100).toFixed(0)}%</div></div>`;
+}
+
+function marcaConsumo(m){
+  const total=m.s1+m.s2+m.s3;
+  if(!m.contrat)return{total,pct:null,disp:null};
+  return{total,pct:total/m.contrat,disp:m.contrat-total};
+}
+
+function initMeta(){
+  const m=DATA.meta,k=DATA.kpis;
+  document.getElementById('meta-semana').textContent=m.mes+' · '+m.semana_activa;
+  document.getElementById('meta-gen').textContent='Actualizado: '+m.generado;
+  document.getElementById('badge-mes').textContent=m.mes;
+  document.getElementById('badge-perfiles').textContent=k.n_perfiles+' perfiles activos';
+  document.getElementById('badge-sobre').textContent=k.sobre+' sobre-ocupados';
+  document.getElementById('kpi-total').textContent=k.total_horas.toLocaleString('es');
+  document.getElementById('kpi-total-sub').textContent=k.n_semanas+' semanas · '+k.n_perfiles+' perfiles';
+  document.getElementById('kpi-prom').textContent=k.prom_sem.toFixed(1);
+  document.getElementById('kpi-pct').textContent=k.pct_ocup+'%';
+  document.getElementById('kpi-sobre').textContent=k.sobre;
+  document.getElementById('kpi-libres').textContent=k.libres;
+  document.getElementById('kpi-contrat').textContent=k.contrat_total.toLocaleString('es');
+}
+
+function buildAlertsList(){
+  const el=document.getElementById('alerts-list');
+  DATA.perfiles.forEach(p=>{
+    const s2=p.s2,pct=s2/40;
+    let dotClass='dot-gray',barColor='#8892a4';
+    if(s2>48){dotClass='dot-red';barColor=COLORS.red;}
+    else if(s2>44){dotClass='dot-red';barColor=COLORS.orange;}
+    else if(s2>40){dotClass='dot-amber';barColor=COLORS.amber;}
+    else if(s2>=32){dotClass='dot-green';barColor=COLORS.green;}
+    else if(s2>0){barColor=COLORS.blue;}
+    el.innerHTML+=`<div class="alert-row"><div class="alert-dot ${dotClass}"></div><div class="alert-name">${p.nombre}</div><div class="alert-hrs">${s2}h</div><div class="alert-bar"><div class="bar-track" style="max-width:160px"><div class="bar-fill" style="width:${Math.min(100,pct*100)}%;background:${barColor}"></div></div></div>${statusPill(s2)}</div>`;
+  });
+}
+
+function buildHeatMap(){
+  const el=document.getElementById('heat-map');
+  DATA.perfiles.forEach(p=>{
+    const days=[p.dias.L,p.dias.M,p.dias.X,p.dias.J,p.dias.V],total=p.s2,pct=total/40;
+    let c=COLORS.green;
+    if(pct>1.2)c=COLORS.red;else if(pct>1)c=COLORS.amber;else if(pct<0.01)c='#8892a4';
+    el.innerHTML+=`<div class="heat-grid"><div class="heat-cell name">${p.nombre}</div>${days.map(d=>`<div class="heat-cell" style="background:${heatColor(d)}">${d||'—'}</div>`).join('')}<div class="heat-cell" style="font-weight:600;color:${c}">${total}</div><div class="heat-cell" style="color:${c}">${(pct*100).toFixed(0)}%</div></div>`;
+  });
+}
+
+function buildTablaEquipo(){
+  const el=document.getElementById('tabla-equipo');
+  DATA.perfiles.forEach(p=>{
+    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="font-weight:600">${fmt1(p.s1)}</td><td class="num">${fmt1(p.s2)}</td><td class="num">${fmt1(p.s1/3)}</td><td>${statusPill(p.s2)}</td><td style="color:#8892a4;font-size:11px">${p.marcas.join(', ')}</td></tr>`;
+  });
+}
+
+function buildTablaMarcas(){
+  const el=document.getElementById('tabla-marcas');
+  DATA.marcas.forEach(m=>{
+    const{total,pct,disp}=marcaConsumo(m);
+    let e;
+    if(pct===null)e='<span class="pill pill-gray">Sin contrato</span>';
+    else if(pct>0.95)e='<span class="pill pill-red">Al límite</span>';
+    else if(pct>0.70)e='<span class="pill pill-amber">Alto</span>';
+    else if(pct>0.40)e='<span class="pill pill-green">Normal</span>';
+    else e='<span class="pill pill-blue">Sub-utilizado</span>';
+    const tp=m.tipo==='Retainer'?'pill-purple':'pill-gray';
+    el.innerHTML+=`<tr><td style="font-weight:500">${m.nombre}</td><td class="num">${m.contrat||'—'}</td><td class="num">${m.s1}</td><td class="num">${m.s2}</td><td class="num">${m.s3}</td><td class="num" style="font-weight:600">${fmt1(total)}</td><td class="num">${pct!==null?barHTML(pct):'—'}</td><td class="num" style="color:${disp!==null&&disp<0?'#f87171':'#34d399'}">${disp!==null?fmt1(disp):'—'}</td><td>${e}</td><td><span class="pill ${tp}">${m.tipo}</span></td></tr>`;
+  });
+}
+
+function buildTablaTipos(){
+  const el=document.getElementById('tabla-tipos');
+  const totalH=DATA.tipos.reduce((a,t)=>a+t.total,0);
+  DATA.tipos.forEach(t=>{
+    const pct=t.total/totalH;
+    const tend=t.s2>t.s1*1.05?'<span class="delta-up">▲ Subiendo</span>':t.s2<t.s1*0.95?'<span class="delta-down">▼ Bajando</span>':'<span class="delta-flat">→ Estable</span>';
+    el.innerHTML+=`<tr><td style="font-weight:500">${t.tipo}</td><td class="num">${fmt1(t.total)}</td><td class="num">${barHTML(pct)}</td><td class="num">${t.s1}</td><td class="num">${t.s2}</td><td class="num">${t.s3}</td><td>${tend}</td><td><span class="pill pill-gray">${t.clasif}</span></td></tr>`;
+  });
+}
+
+function buildTablaSobre(){
+  const el=document.getElementById('tabla-sobre');
+  DATA.perfiles.filter(p=>p.s2>40).sort((a,b)=>b.s2-a.s2).forEach(p=>{
+    const ex=p.s2-40;
+    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="color:#f87171;font-weight:600">${p.s2}</td><td class="num" style="color:#f87171">+${fmt1(ex)}</td><td class="num">${fmtPct(p.s2/40)}</td><td>${statusPill(p.s2)}</td></tr>`;
+  });
+}
+
+function buildTablaSub(){
+  const el=document.getElementById('tabla-sub');
+  DATA.marcas.filter(m=>m.contrat&&(m.s1+m.s2+m.s3)/m.contrat<0.5).sort((a,b)=>((a.s1+a.s2+a.s3)/a.contrat)-((b.s1+b.s2+b.s3)/b.contrat)).forEach(m=>{
+    const total=m.s1+m.s2+m.s3,pct=total/m.contrat;
+    const r=pct<0.2?'<span class="pill pill-red">Crítico</span>':pct<0.4?'<span class="pill pill-amber">Alto</span>':'<span class="pill pill-blue">Medio</span>';
+    el.innerHTML+=`<tr><td style="font-weight:500">${m.nombre}</td><td class="num">${m.contrat}</td><td class="num">${fmt1(total)}</td><td class="num">${barHTML(pct,COLORS.red)}</td><td>${r}</td></tr>`;
+  });
+}
+
+function buildTablaConcentracion(){
+  const el=document.getElementById('tabla-concentracion');
+  DATA.concentracion.forEach(c=>{
+    const pct=c.hrsMarca/c.total;
+    const r=pct>0.7?'<span class="pill pill-red">Alta dependencia</span>':pct>0.5?'<span class="pill pill-amber">Media</span>':'<span class="pill pill-green">Diversificado</span>';
+    el.innerHTML+=`<tr><td>${c.perfil}</td><td style="font-weight:500">${c.marcaPrincipal}</td><td class="num">${fmt1(c.hrsMarca)}</td><td class="num">${fmt1(c.total)}</td><td class="num">${barHTML(pct,pct>0.7?COLORS.red:COLORS.amber)}</td><td class="num">${c.nMarcas}</td><td>${r}</td></tr>`;
+  });
+}
+
+const cDef={plugins:{legend:{labels:{color:'#8892a4',font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}};
+function mkChart(id,type,data,opts={}){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  return new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...cDef,...opts,plugins:{...cDef.plugins,...(opts.plugins||{})}}});
+}
+
+function buildCharts(){
+  mkChart('chartTipo','doughnut',{labels:DATA.tipos.map(t=>t.tipo),datasets:[{data:DATA.tipos.map(t=>t.total),backgroundColor:PALETTE,borderColor:'#1a1d27',borderWidth:2,hoverOffset:6}]},{cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
+
+  const top8=DATA.marcas.slice(0,8);
+  mkChart('chartMarca','bar',{labels:top8.map(m=>m.nombre),datasets:[{label:'Consumidas',data:top8.map(m=>m.s1+m.s2+m.s3),backgroundColor:'#4f8ef7'},{label:'Contratadas',data:top8.map(m=>m.contrat||0),backgroundColor:'rgba(136,146,164,.2)'}]},{scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}});
+
+  const semLabels=['Semana 1','Semana 2','Semana 3'];
+  const semTotals=[
+    DATA.perfiles.reduce((a,p)=>{try{return a+(p.sem_hrs?.s1||0)}catch{return a}},0)||349.5,
+    DATA.perfiles.reduce((a,p)=>a+p.s2,0),
+    150.5
+  ];
+  const cap=DATA.kpis.n_perfiles*40;
+  mkChart('chartTendencia','line',{labels:semLabels,datasets:[{label:'Total equipo (hrs)',data:semTotals,borderColor:COLORS.blue,backgroundColor:'rgba(79,142,247,.1)',fill:true,tension:.3,pointRadius:5},{label:`Capacidad (${cap}h)`,data:[cap,cap,cap],borderColor:'rgba(248,113,113,.4)',borderDash:[4,4],pointRadius:0}]});
+
+  mkChart('chartEquipoTotal','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:[{label:'Total hrs',data:DATA.perfiles.map(p=>p.s1),backgroundColor:DATA.perfiles.map(p=>p.s1>120?COLORS.red:p.s1>80?COLORS.amber:COLORS.green)}]});
+
+  mkChart('chartRadar','radar',{labels:['Lunes','Martes','Miércoles','Jueves','Viernes'],datasets:DATA.perfiles.filter(p=>p.s2>0).map((p,i)=>({label:p.nombre.split(' ')[0],data:[p.dias.L,p.dias.M,p.dias.X,p.dias.J,p.dias.V],borderColor:PALETTE[i],backgroundColor:PALETTE[i]+'22',pointRadius:3,borderWidth:1.5}))},{scales:{r:{ticks:{color:'#8892a4',font:{size:10},backdropColor:'transparent'},grid:{color:'#2e3347'},pointLabels:{color:'#8892a4',font:{size:11}}}}});
+
+  mkChart('chartMarcaDetalle','bar',{labels:DATA.marcas.filter(m=>m.contrat).map(m=>m.nombre),datasets:[{label:'Consumido',data:DATA.marcas.filter(m=>m.contrat).map(m=>m.s1+m.s2+m.s3),backgroundColor:COLORS.blue},{label:'Contratado',data:DATA.marcas.filter(m=>m.contrat).map(m=>m.contrat),backgroundColor:'rgba(136,146,164,.15)'}]});
+
+  mkChart('chartTipoBar','bar',{labels:DATA.tipos.map(t=>t.tipo),datasets:[{label:'Sem 1',data:DATA.tipos.map(t=>t.s1),backgroundColor:COLORS.blue+'bb'},{label:'Sem 2',data:DATA.tipos.map(t=>t.s2),backgroundColor:COLORS.teal+'bb'},{label:'Sem 3',data:DATA.tipos.map(t=>t.s3),backgroundColor:COLORS.purple+'bb'}]},{plugins:{legend:{position:'top',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
+
+  const tipoLabels=DATA.tipos.map(t=>t.tipo);
+  mkChart('chartTipoStack','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:tipoLabels.map((tipo,i)=>({label:tipo,data:DATA.perfiles.map(p=>{const t=DATA.tipos.find(x=>x.tipo===tipo);return t?Math.round(t.total/DATA.perfiles.length):0}),backgroundColor:PALETTE[i]+'cc'}))},{scales:{x:{stacked:true,ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{stacked:true,ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}},plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:10},boxWidth:10}}}});
+
+  mkChart('chartTendenciaPersona','line',{labels:['Semana 1 (prom)','Semana activa'],datasets:DATA.perfiles.filter(p=>p.s1>0).map((p,i)=>({label:p.nombre.split(' ')[0],data:[+(p.s1/3).toFixed(1),p.s2],borderColor:PALETTE[i],backgroundColor:'transparent',tension:.3,pointRadius:5,borderWidth:2}))},{scales:{x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'},min:0,max:60}},plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
+
+  const deltas=DATA.perfiles.map(p=>+(p.s2-p.s1/3).toFixed(1));
+  mkChart('chartDelta','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:[{label:'Δ prom→sem activa (hrs)',data:deltas,backgroundColor:deltas.map(d=>d>0?COLORS.red+'cc':COLORS.green+'cc')}]});
+
+  const topM=DATA.marcas.slice(0,8);
+  mkChart('chartMarcaSem','bar',{labels:topM.map(m=>m.nombre),datasets:[{label:'Sem 1',data:topM.map(m=>m.s1),backgroundColor:COLORS.blue+'bb'},{label:'Sem 2',data:topM.map(m=>m.s2),backgroundColor:COLORS.teal+'bb'},{label:'Sem 3',data:topM.map(m=>m.s3),backgroundColor:COLORS.purple+'bb'}]},{scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}},plugins:{legend:{position:'top',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initMeta();buildAlertsList();buildHeatMap();buildTablaEquipo();
+  buildTablaMarcas();buildTablaTipos();buildTablaSobre();
+  buildTablaSub();buildTablaConcentracion();buildCharts();
+});
+</script>
+</body>
+</html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
