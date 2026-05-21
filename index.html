@@ -76,6 +76,12 @@
   .heat-cell.header{background:var(--surface2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
   .table-scroll{overflow-x:auto}
   .footer-note{font-size:10.5px;color:var(--muted);padding:12px 18px;border-top:1px solid var(--border)}
+  .filter-bar{display:flex;align-items:center;gap:8px;margin-left:16px}
+  .filter-label{font-size:11px;color:var(--muted);white-space:nowrap}
+  .filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 10px;font-size:11px;border-radius:3px;outline:none;cursor:pointer;min-width:90px}
+  .filter-select:focus{border-color:var(--accent)}
+  .btn-reset{background:transparent;color:var(--muted);border:1px solid var(--border);padding:4px 9px;font-size:11px;border-radius:3px;cursor:pointer;line-height:1}
+  .btn-reset:hover{color:var(--red);border-color:var(--red)}
   @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
@@ -105,6 +111,13 @@
       <span class="badge badge-blue" id="badge-mes">—</span>
       <span class="badge badge-green" id="badge-perfiles">—</span>
       <span class="badge badge-red" id="badge-sobre">—</span>
+      <div class="filter-bar">
+        <label class="filter-label">Mes</label>
+        <select id="filter-mes" class="filter-select" onchange="onFilterMes()"><option value="">Todos</option></select>
+        <label class="filter-label">Semana</label>
+        <select id="filter-sem" class="filter-select" onchange="onFilterSem()"><option value="">Todas</option></select>
+        <button class="btn-reset" onclick="resetFilters()" title="Limpiar filtros">✕ Limpiar</button>
+      </div>
     </div>
   </div>
 
@@ -180,16 +193,67 @@
 </div>
 
 <script>
-const DATA = {"perfiles": [{"nombre": "Nicolas Tibatá", "s1": 153.5, "s2": 51.5, "dias": {"L": 13.0, "M": 11.0, "X": 10.0, "J": 10.0, "V": 7.5}, "marcas": ["BAV Pulse", "Growth", "Licitación", "honda", "lifemiles"]}, {"nombre": "Juan Osorio", "s1": 137.0, "s2": 43.0, "dias": {"L": 7.5, "M": 9.0, "X": 9.0, "J": 8.5, "V": 9.0}, "marcas": ["honda", "wework"]}, {"nombre": "Juan Amorocho", "s1": 139.5, "s2": 93.0, "dias": {"L": 22.0, "M": 19.0, "X": 18.0, "J": 18.0, "V": 16.0}, "marcas": ["compensar", "constructora capital"]}, {"nombre": "Esteban Caicedo", "s1": 87.0, "s2": 44.5, "dias": {"L": 10.0, "M": 9.0, "X": 8.0, "J": 9.5, "V": 8.0}, "marcas": ["Licitación", "compensar", "constructora capital", "honda", "lifemiles", "novartis", "wework"]}, {"nombre": "Jonathan Otalvaro", "s1": 9.0, "s2": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}, "marcas": ["Little Caesars"]}, {"nombre": "Rafael Vergara", "s1": 110.5, "s2": 48.0, "dias": {"L": 10.0, "M": 10.0, "X": 10.0, "J": 9.0, "V": 9.0}, "marcas": ["Growth", "Licitación", "Little Caesars", "Makro", "adidas", "exeltis", "novartis"]}, {"nombre": "Mariana Calderón", "s1": 129.0, "s2": 46.5, "dias": {"L": 6.0, "M": 11.5, "X": 11.0, "J": 8.0, "V": 10.0}, "marcas": ["lifemiles"]}, {"nombre": "Eduardo Mejía", "s1": 114.0, "s2": 40.0, "dias": {"L": 14.0, "M": 9.0, "X": 0.0, "J": 9.0, "V": 8.0}, "marcas": ["BAV Pulse", "Prime Video", "abbott", "adidas"]}, {"nombre": "Mateo Acosta", "s1": 82.0, "s2": 43.0, "dias": {"L": 6.0, "M": 15.0, "X": 6.0, "J": 8.0, "V": 8.0}, "marcas": ["VALIDAR", "adidas", "ford", "mall plaza", "seguros alfa"]}, {"nombre": "Valentina Albán", "s1": 0.0, "s2": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}, "marcas": []}], "marcas": [{"nombre": "honda", "contrat": 252.0, "s1": 105.0, "s2": 99.5, "s3": 69.0, "tipo": "Retainer"}, {"nombre": "lifemiles", "contrat": 168.0, "s1": 48.5, "s2": 57.0, "s3": 43.0, "tipo": "Retainer"}, {"nombre": "adidas", "contrat": 168.0, "s1": 37.0, "s2": 31.0, "s3": 16.0, "tipo": "Retainer"}, {"nombre": "compensar", "contrat": 84.0, "s1": 27.0, "s2": 54.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "constructora capital", "contrat": 84.0, "s1": 20.0, "s2": 41.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "BAV Pulse", "contrat": null, "s1": 29.0, "s2": 4.0, "s3": 13.0, "tipo": "Interno"}, {"nombre": "ford", "contrat": 100.8, "s1": 15.5, "s2": 21.0, "s3": 4.0, "tipo": "Parcial"}, {"nombre": "Prime Video", "contrat": null, "s1": 1.5, "s2": 20.0, "s3": 16.0, "tipo": "Pitch"}, {"nombre": "Makro", "contrat": 33.6, "s1": 6.5, "s2": 22.0, "s3": 4.0, "tipo": "Parcial"}, {"nombre": "Growth", "contrat": null, "s1": 1.5, "s2": 2.0, "s3": 28.0, "tipo": "Interno"}, {"nombre": "wework", "contrat": 84.0, "s1": 15.0, "s2": 14.0, "s3": 0.5, "tipo": "Parcial"}, {"nombre": "exeltis", "contrat": 16.8, "s1": 3.0, "s2": 12.0, "s3": 1.0, "tipo": "Parcial"}, {"nombre": "Little Caesars", "contrat": null, "s1": 12.5, "s2": 0.0, "s3": 0.0, "tipo": "Pitch"}, {"nombre": "seguros alfa", "contrat": 84.0, "s1": 6.5, "s2": 5.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "novartis", "contrat": 16.8, "s1": 7.0, "s2": 4.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "mall plaza", "contrat": 84.0, "s1": 4.5, "s2": 5.0, "s3": 0.0, "tipo": "Parcial"}, {"nombre": "abbott", "contrat": 168.0, "s1": 0.0, "s2": 9.0, "s3": 0.0, "tipo": "Retainer"}, {"nombre": "Licitación", "contrat": null, "s1": 6.5, "s2": 1.0, "s3": 0.0, "tipo": "Interno"}, {"nombre": "VALIDAR", "contrat": null, "s1": 0.0, "s2": 2.0, "s3": 0.0, "tipo": "Otro"}], "tipos": [{"tipo": "Entregable", "total": 501.0, "s1": 195.5, "s2": 244.5, "s3": 61.0, "clasif": "Core productivo"}, {"tipo": "Actualización", "total": 132.0, "s1": 29.5, "s2": 57.5, "s3": 45.0, "clasif": "Mantenimiento"}, {"tipo": "Dashboard", "total": 127.5, "s1": 65.5, "s2": 36.5, "s3": 25.5, "clasif": "Visual/Análisis"}, {"tipo": "Reunión", "total": 120.5, "s1": 44.0, "s2": 54.0, "s3": 22.5, "clasif": "No productivo"}, {"tipo": "Infraestructura", "total": 45.5, "s1": 15.0, "s2": 4.0, "s3": 26.5, "clasif": "Técnico base"}, {"tipo": "Automatización", "total": 31.0, "s1": 0.0, "s2": 9.0, "s3": 22.0, "clasif": "Alto valor"}, {"tipo": "Informe", "total": 4.0, "s1": 0.0, "s2": 4.0, "s3": 0.0, "clasif": "Reporte"}], "concentracion": [{"perfil": "Nicolas Tibatá", "marcaPrincipal": "honda", "hrsMarca": 108.0, "total": 150.5, "nMarcas": 5}, {"perfil": "Juan Osorio", "marcaPrincipal": "honda", "hrsMarca": 127.5, "total": 130.0, "nMarcas": 2}, {"perfil": "Juan Amorocho", "marcaPrincipal": "compensar", "hrsMarca": 79.5, "total": 136.5, "nMarcas": 2}, {"perfil": "Esteban Caicedo", "marcaPrincipal": "honda", "hrsMarca": 38.0, "total": 83.0, "nMarcas": 7}, {"perfil": "Jonathan Otalvaro", "marcaPrincipal": "Little Caesars", "hrsMarca": 9.0, "total": 9.0, "nMarcas": 1}, {"perfil": "Rafael Vergara", "marcaPrincipal": "Makro", "hrsMarca": 32.5, "total": 110.5, "nMarcas": 7}, {"perfil": "Mariana Calderón", "marcaPrincipal": "lifemiles", "hrsMarca": 129.0, "total": 129.0, "nMarcas": 1}, {"perfil": "Eduardo Mejía", "marcaPrincipal": "adidas", "hrsMarca": 47.5, "total": 114.0, "nMarcas": 4}, {"perfil": "Mateo Acosta", "marcaPrincipal": "ford", "hrsMarca": 40.5, "total": 82.0, "nMarcas": 5}], "kpis": {"total_horas": 961.5, "prom_sem": 45.5, "pct_ocup": 89.0, "sobre": 7, "libres": 0, "contrat_total": 2755.2, "n_perfiles": 9, "n_semanas": 3, "sobre_sem": 7}, "meta": {"semana_activa": "Semana 3", "mes": "Mayo 2026", "generado": "20/05/2026 12:56"}};
-
+const DATA = {"perfiles": [{"nombre": "Nicolas Tibatá", "s1": 153.5, "s2": 51.5, "dias": {"L": 13.0, "M": 11.0, "X": 10.0, "J": 10.0, "V": 7.5}, "marcas": ["BAV Pulse", "Growth", "Licitación", "honda", "lifemiles"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 57.0, "dias": {"L": 13.0, "M": 12.0, "X": 11.0, "J": 11.0, "V": 10.0}}, "Semana 2": {"total": 51.5, "dias": {"L": 13.0, "M": 11.0, "X": 10.0, "J": 10.0, "V": 7.5}}, "Semana 3": {"total": 45.0, "dias": {"L": 0.0, "M": 14.0, "X": 10.0, "J": 13.0, "V": 8.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Juan Osorio", "s1": 137.0, "s2": 43.0, "dias": {"L": 7.5, "M": 9.0, "X": 9.0, "J": 8.5, "V": 9.0}, "marcas": ["honda", "wework"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 46.5, "dias": {"L": 10.0, "M": 9.0, "X": 9.0, "J": 9.5, "V": 9.0}}, "Semana 2": {"total": 43.0, "dias": {"L": 7.5, "M": 9.0, "X": 9.0, "J": 8.5, "V": 9.0}}, "Semana 3": {"total": 47.5, "dias": {"L": 7.0, "M": 10.0, "X": 14.0, "J": 7.5, "V": 9.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Juan Amorocho", "s1": 108.0, "s2": 35.0, "dias": {"L": 12.0, "M": 1.0, "X": 5.0, "J": 9.0, "V": 8.0}, "marcas": ["compensar", "constructora capital"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 48.0, "dias": {"L": 12.0, "M": 10.0, "X": 9.0, "J": 9.0, "V": 8.0}}, "Semana 2": {"total": 35.0, "dias": {"L": 12.0, "M": 1.0, "X": 5.0, "J": 9.0, "V": 8.0}}, "Semana 3": {"total": 25.0, "dias": {"L": 1.0, "M": 11.0, "X": 9.0, "J": 0.0, "V": 4.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Esteban Caicedo", "s1": 124.5, "s2": 44.5, "dias": {"L": 10.0, "M": 9.0, "X": 8.0, "J": 9.5, "V": 8.0}, "marcas": ["Licitación", "compensar", "constructora capital", "ford", "honda", "isa", "lifemiles", "mall plaza", "novartis", "wework"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 42.5, "dias": {"L": 10.5, "M": 8.0, "X": 8.0, "J": 8.0, "V": 8.0}}, "Semana 2": {"total": 44.5, "dias": {"L": 10.0, "M": 9.0, "X": 8.0, "J": 9.5, "V": 5.0}}, "Semana 3": {"total": 37.5, "dias": {"L": 0.0, "M": 8.5, "X": 9.0, "J": 9.5, "V": 4.5}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Jonathan Otalvaro", "s1": 9.0, "s2": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}, "marcas": ["Little Caesars"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 9.0, "dias": {"L": 9.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}, "Semana 2": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}, "Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Rafael Vergara", "s1": 110.5, "s2": 48.0, "dias": {"L": 10.0, "M": 10.0, "X": 10.0, "J": 9.0, "V": 9.0}, "marcas": ["Growth", "Licitación", "Little Caesars", "Makro", "adidas", "exeltis", "novartis"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 28.5, "dias": {"L": 7.5, "M": 8.5, "X": 7.0, "J": 0.0, "V": 5.5}}, "Semana 2": {"total": 48.0, "dias": {"L": 10.0, "M": 10.0, "X": 10.0, "J": 9.0, "V": 9.0}}, "Semana 3": {"total": 34.0, "dias": {"L": 0.0, "M": 8.5, "X": 8.0, "J": 9.5, "V": 8.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Mariana Calderón", "s1": 129.0, "s2": 46.5, "dias": {"L": 6.0, "M": 11.5, "X": 11.0, "J": 8.0, "V": 10.0}, "marcas": ["lifemiles"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 41.5, "dias": {"L": 9.0, "M": 6.5, "X": 9.0, "J": 7.0, "V": 10.0}}, "Semana 2": {"total": 46.5, "dias": {"L": 6.0, "M": 11.5, "X": 11.0, "J": 8.0, "V": 10.0}}, "Semana 3": {"total": 41.0, "dias": {"L": 0.0, "M": 14.0, "X": 12.0, "J": 8.0, "V": 7.0}}}, "Mayo 2027": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2028": {"Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}}}, {"nombre": "Mateo Acosta", "s1": 122.5, "s2": 43.0, "dias": {"L": 6.0, "M": 15.0, "X": 6.0, "J": 8.0, "V": 8.0}, "marcas": ["VALIDAR", "adidas", "ford", "mall plaza", "seguros alfa"], "porSemana": {"Mayo 2026": {"Semana 1": {"total": 45.5, "dias": {"L": 9.5, "M": 6.0, "X": 5.0, "J": 10.5, "V": 14.5}}, "Semana 2": {"total": 43.0, "dias": {"L": 6.0, "M": 15.0, "X": 6.0, "J": 8.0, "V": 8.0}}, "Semana 3": {"total": 0.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 0.0}}}, "Mayo 2027": {"Semana 3": {"total": 33.0, "dias": {"L": 0.0, "M": 9.5, "X": 9.0, "J": 8.5, "V": 6.0}}}, "Mayo 2028": {"Semana 3": {"total": 1.0, "dias": {"L": 0.0, "M": 0.0, "X": 0.0, "J": 0.0, "V": 1.0}}}}}], "marcas": [{"nombre": "honda", "contrat": 252.0, "s1": 105.0, "s2": 99.5, "s3": 81.0, "tipo": "Retainer", "porSemana": {"Mayo 2026": {"Semana 1": 105.0, "Semana 2": 99.5, "Semana 3": 81.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "lifemiles", "contrat": 168.0, "s1": 48.5, "s2": 57.0, "s3": 43.0, "tipo": "Retainer", "porSemana": {"Mayo 2026": {"Semana 1": 48.5, "Semana 2": 57.0, "Semana 3": 43.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "compensar", "contrat": 84.0, "s1": 27.5, "s2": 28.0, "s3": 14.5, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 27.5, "Semana 2": 28.0, "Semana 3": 14.5}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "ford", "contrat": 100.8, "s1": 23.5, "s2": 21.0, "s3": 22.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 23.5, "Semana 2": 21.0, "Semana 3": 1.5}, "Mayo 2027": {"Semana 3": 19.5}, "Mayo 2028": {"Semana 3": 1.0}}}, {"nombre": "wework", "contrat": 84.0, "s1": 15.0, "s2": 14.0, "s3": 16.5, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 15.0, "Semana 2": 14.0, "Semana 3": 16.5}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "constructora capital", "contrat": 84.0, "s1": 21.0, "s2": 10.0, "s3": 13.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 21.0, "Semana 2": 10.0, "Semana 3": 13.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "adidas", "contrat": 168.0, "s1": 15.5, "s2": 21.0, "s3": 4.5, "tipo": "Retainer", "porSemana": {"Mayo 2026": {"Semana 1": 15.5, "Semana 2": 21.0, "Semana 3": 1.0}, "Mayo 2027": {"Semana 3": 3.5}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "Makro", "contrat": 33.6, "s1": 6.5, "s2": 22.0, "s3": 4.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 6.5, "Semana 2": 22.0, "Semana 3": 4.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "Growth", "contrat": null, "s1": 1.5, "s2": 2.0, "s3": 28.0, "tipo": "Interno", "porSemana": {"Mayo 2026": {"Semana 1": 1.5, "Semana 2": 2.0, "Semana 3": 28.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "BAV Pulse", "contrat": null, "s1": 10.0, "s2": 3.0, "s3": 13.0, "tipo": "Interno", "porSemana": {"Mayo 2026": {"Semana 1": 10.0, "Semana 2": 3.0, "Semana 3": 13.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "mall plaza", "contrat": 84.0, "s1": 6.0, "s2": 5.0, "s3": 11.5, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 6.0, "Semana 2": 5.0, "Semana 3": 2.5}, "Mayo 2027": {"Semana 3": 9.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "exeltis", "contrat": 16.8, "s1": 3.0, "s2": 12.0, "s3": 1.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 3.0, "Semana 2": 12.0, "Semana 3": 1.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "Little Caesars", "contrat": null, "s1": 12.5, "s2": 0.0, "s3": 0.0, "tipo": "Pitch", "porSemana": {"Mayo 2026": {"Semana 1": 12.5, "Semana 2": 0.0, "Semana 3": 0.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "seguros alfa", "contrat": 84.0, "s1": 6.5, "s2": 5.0, "s3": 1.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 6.5, "Semana 2": 5.0, "Semana 3": 0.0}, "Mayo 2027": {"Semana 3": 1.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "novartis", "contrat": 16.8, "s1": 7.0, "s2": 4.0, "s3": 0.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 7.0, "Semana 2": 4.0, "Semana 3": 0.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "Licitación", "contrat": null, "s1": 6.5, "s2": 1.0, "s3": 1.0, "tipo": "Interno", "porSemana": {"Mayo 2026": {"Semana 1": 6.5, "Semana 2": 1.0, "Semana 3": 1.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "isa", "contrat": 33.6, "s1": 0.0, "s2": 0.0, "s3": 2.0, "tipo": "Parcial", "porSemana": {"Mayo 2026": {"Semana 1": 0.0, "Semana 2": 0.0, "Semana 3": 2.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"nombre": "VALIDAR", "contrat": null, "s1": 0.0, "s2": 2.0, "s3": 0.0, "tipo": "Otro", "porSemana": {"Mayo 2026": {"Semana 1": 0.0, "Semana 2": 2.0, "Semana 3": 0.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}], "tipos": [{"tipo": "Entregable", "total": 457.0, "s1": 204.5, "s2": 181.5, "s3": 71.0, "clasif": "Core productivo", "porSemana": {"Mayo 2026": {"Semana 1": 204.5, "Semana 2": 181.5, "Semana 3": 67.0}, "Mayo 2027": {"Semana 3": 4.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Reunión", "total": 126.5, "s1": 44.5, "s2": 50.0, "s3": 32.0, "clasif": "No productivo", "porSemana": {"Mayo 2026": {"Semana 1": 44.5, "Semana 2": 50.0, "Semana 3": 26.5}, "Mayo 2027": {"Semana 3": 5.5}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Actualización", "total": 124.5, "s1": 28.5, "s2": 49.5, "s3": 46.5, "clasif": "Mantenimiento", "porSemana": {"Mayo 2026": {"Semana 1": 28.5, "Semana 2": 49.5, "Semana 3": 41.5}, "Mayo 2027": {"Semana 3": 4.0}, "Mayo 2028": {"Semana 3": 1.0}}}, {"tipo": "Dashboard", "total": 74.0, "s1": 26.0, "s2": 17.5, "s3": 30.5, "clasif": "Visual/Análisis", "porSemana": {"Mayo 2026": {"Semana 1": 26.0, "Semana 2": 17.5, "Semana 3": 27.5}, "Mayo 2027": {"Semana 3": 3.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Infraestructura", "total": 67.5, "s1": 15.0, "s2": 4.0, "s3": 48.5, "clasif": "Técnico base", "porSemana": {"Mayo 2026": {"Semana 1": 15.0, "Semana 2": 4.0, "Semana 3": 44.5}, "Mayo 2027": {"Semana 3": 4.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Automatización", "total": 37.5, "s1": 0.0, "s2": 9.0, "s3": 28.5, "clasif": "Alto valor", "porSemana": {"Mayo 2026": {"Semana 1": 0.0, "Semana 2": 9.0, "Semana 3": 22.0}, "Mayo 2027": {"Semana 3": 6.5}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Reporte", "total": 6.0, "s1": 0.0, "s2": 0.0, "s3": 6.0, "clasif": "Reporte", "porSemana": {"Mayo 2026": {"Semana 1": 0.0, "Semana 2": 0.0, "Semana 3": 0.0}, "Mayo 2027": {"Semana 3": 6.0}, "Mayo 2028": {"Semana 3": 0.0}}}, {"tipo": "Licitación", "total": 1.0, "s1": 0.0, "s2": 0.0, "s3": 1.0, "clasif": "Licitación", "porSemana": {"Mayo 2026": {"Semana 1": 0.0, "Semana 2": 0.0, "Semana 3": 1.0}, "Mayo 2027": {"Semana 3": 0.0}, "Mayo 2028": {"Semana 3": 0.0}}}], "concentracion": [{"perfil": "Nicolas Tibatá", "marcaPrincipal": "honda", "hrsMarca": 108.0, "total": 150.5, "nMarcas": 5}, {"perfil": "Juan Osorio", "marcaPrincipal": "honda", "hrsMarca": 127.5, "total": 130.0, "nMarcas": 2}, {"perfil": "Juan Amorocho", "marcaPrincipal": "compensar", "hrsMarca": 66.0, "total": 106.0, "nMarcas": 2}, {"perfil": "Esteban Caicedo", "marcaPrincipal": "honda", "hrsMarca": 50.0, "total": 120.5, "nMarcas": 10}, {"perfil": "Jonathan Otalvaro", "marcaPrincipal": "Little Caesars", "hrsMarca": 9.0, "total": 9.0, "nMarcas": 1}, {"perfil": "Rafael Vergara", "marcaPrincipal": "Makro", "hrsMarca": 32.5, "total": 110.5, "nMarcas": 7}, {"perfil": "Mariana Calderón", "marcaPrincipal": "lifemiles", "hrsMarca": 129.0, "total": 129.0, "nMarcas": 1}, {"perfil": "Mateo Acosta", "marcaPrincipal": "ford", "hrsMarca": 65.0, "total": 122.5, "nMarcas": 5}], "kpis": {"total_horas": 894.0, "prom_sem": 38.9, "pct_ocup": 93.1, "sobre": 6, "libres": 0, "contrat_total": 2755.2, "n_perfiles": 8, "n_semanas": 3, "sobre_sem": 6}, "meta": {"semana_activa": "Semana 3", "mes": "Mayo 2028", "generado": "21/05/2026 16:02", "meses": ["Mayo 2026", "Mayo 2027", "Mayo 2028"], "semanasPorMes": {"Mayo 2026": ["Semana 1", "Semana 2", "Semana 3"], "Mayo 2027": ["Semana 3"], "Mayo 2028": ["Semana 3"]}, "ultimoMes": "Mayo 2028", "ultimaSemana": "Semana 3"}};
 const COLORS={blue:'#4f8ef7',green:'#34d399',red:'#f87171',amber:'#fbbf24',teal:'#2dd4bf',purple:'#a78bfa',pink:'#f472b6',orange:'#fb923c',indigo:'#818cf8',cyan:'#22d3ee',lime:'#a3e635',rose:'#fb7185'};
 const PALETTE=Object.values(COLORS);
 
+// ── filter state ─────────────────────────────────────────────────────────────
+const S={mes:null,semana:null};
+const CHARTS={};
+
+// ── utils ─────────────────────────────────────────────────────────────────────
 function fmt1(n){return typeof n==='number'?n.toFixed(1):n}
 function fmtPct(n){return typeof n==='number'?(n*100).toFixed(1)+'%':n}
 
-const pageTitles={overview:'Resumen Ejecutivo',equipo:'Ocupación del Equipo',marcas:'Análisis por Marca / Cliente',entregables:'Análisis por Tipo de Entregable',alertas:'Alertas y Concentración',tendencia:'Tendencia Semanal'};
+function statusPill(hrs){
+  if(hrs>48)return'<span class="pill pill-red">Crítico >48h</span>';
+  if(hrs>44)return'<span class="pill pill-red">Alto >44h</span>';
+  if(hrs>40)return'<span class="pill pill-amber">Sobre >40h</span>';
+  if(hrs>=32)return'<span class="pill pill-green">Normal</span>';
+  if(hrs>0)return'<span class="pill pill-blue">Disponible</span>';
+  return'<span class="pill pill-gray">Sin datos</span>';
+}
+function heatColor(h){return h>10?'rgba(248,113,113,.18)':h>8?'rgba(251,191,36,.18)':h>5?'rgba(52,211,153,.12)':h>0?'rgba(79,142,247,.10)':'transparent'}
+function barHTML(pct,color='#4f8ef7'){const w=Math.min(100,pct*100);return`<div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div><div class="bar-label">${(pct*100).toFixed(0)}%</div></div>`}
 
+// ── filter-aware data helpers ─────────────────────────────────────────────────
+function perfHrs(p){
+  if(S.mes&&S.semana)return p.porSemana?.[S.mes]?.[S.semana]?.total||0;
+  if(S.mes){const ss=DATA.meta.semanasPorMes[S.mes]||[];return ss.reduce((a,s)=>a+(p.porSemana?.[S.mes]?.[s]?.total||0),0);}
+  return p.s1;
+}
+function perfDias(p){
+  if(S.mes&&S.semana)return p.porSemana?.[S.mes]?.[S.semana]?.dias||{L:0,M:0,X:0,J:0,V:0};
+  return p.dias;
+}
+function marcaHrs(m){
+  if(S.mes&&S.semana)return m.porSemana?.[S.mes]?.[S.semana]||0;
+  if(S.mes){const ss=DATA.meta.semanasPorMes[S.mes]||[];return ss.reduce((a,s)=>a+(m.porSemana?.[S.mes]?.[s]||0),0);}
+  return m.s1+m.s2+m.s3;
+}
+function tipoHrs(t){
+  if(S.mes&&S.semana)return t.porSemana?.[S.mes]?.[S.semana]||0;
+  if(S.mes){const ss=DATA.meta.semanasPorMes[S.mes]||[];return ss.reduce((a,s)=>a+(t.porSemana?.[S.mes]?.[s]||0),0);}
+  return t.total;
+}
+function activePerfiles(){return DATA.perfiles.filter(p=>perfHrs(p)>0)}
+function computeKPIs(){
+  const act=activePerfiles(),n=act.length;
+  const total=Math.round(act.reduce((a,p)=>a+perfHrs(p),0)*10)/10;
+  const prom=n?Math.round(total/n*10)/10:0;
+  const cap=n*40,pct=cap?Math.round(total/cap*1000)/10:0;
+  const sobre=act.filter(p=>perfHrs(p)>40).length;
+  const libres=act.filter(p=>{const h=perfHrs(p);return h>0&&h<32}).length;
+  return{total,prom,pct,sobre,libres,n};
+}
+function marcaConsumo(m){
+  const total=marcaHrs(m);
+  if(!m.contrat)return{total,pct:null,disp:null};
+  return{total,pct:total/m.contrat,disp:m.contrat-total};
+}
+
+// ── page navigation ───────────────────────────────────────────────────────────
+const pageTitles={overview:'Resumen Ejecutivo',equipo:'Ocupación del Equipo',marcas:'Análisis por Marca / Cliente',entregables:'Análisis por Tipo de Entregable',alertas:'Alertas y Concentración',tendencia:'Tendencia Semanal'};
 function showPage(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -198,85 +262,88 @@ function showPage(id,el){
   document.getElementById('page-title').textContent=pageTitles[id];
 }
 
-function statusPill(hrs){
-  if(hrs>48)return'<span class="pill pill-red">🔴 Crítico >48h</span>';
-  if(hrs>44)return'<span class="pill pill-red">🟠 Alto >44h</span>';
-  if(hrs>40)return'<span class="pill pill-amber">🟡 Sobre >40h</span>';
-  if(hrs>=32)return'<span class="pill pill-green">🟢 Normal</span>';
-  if(hrs>0)return'<span class="pill pill-blue">🔵 Disponible</span>';
-  return'<span class="pill pill-gray">⚪ Sin datos</span>';
+// ── filter controls ───────────────────────────────────────────────────────────
+function initFilters(){
+  const mesEl=document.getElementById('filter-mes');
+  DATA.meta.meses.forEach(m=>{mesEl.innerHTML+=`<option value="${m}">${m}</option>`});
+  mesEl.value=DATA.meta.ultimoMes;
+  S.mes=DATA.meta.ultimoMes;
+  updateSemanaOptions();
+  document.getElementById('filter-sem').value=DATA.meta.ultimaSemana;
+  S.semana=DATA.meta.ultimaSemana;
+}
+function updateSemanaOptions(){
+  const semEl=document.getElementById('filter-sem');
+  semEl.innerHTML='<option value="">Todas las semanas</option>';
+  if(S.mes)(DATA.meta.semanasPorMes[S.mes]||[]).forEach(s=>{semEl.innerHTML+=`<option value="${s}">${s}</option>`});
+}
+function onFilterMes(){S.mes=document.getElementById('filter-mes').value||null;S.semana=null;updateSemanaOptions();renderAll()}
+function onFilterSem(){S.semana=document.getElementById('filter-sem').value||null;renderAll()}
+function resetFilters(){S.mes=null;S.semana=null;document.getElementById('filter-mes').value='';document.getElementById('filter-sem').value='';updateSemanaOptions();renderAll()}
+
+// ── chart factory (destroy+recreate) ─────────────────────────────────────────
+const cDef={plugins:{legend:{labels:{color:'#8892a4',font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}};
+function mkChart(id,type,data,opts={}){
+  if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id]}
+  const ctx=document.getElementById(id);if(!ctx)return;
+  CHARTS[id]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...cDef,...opts,plugins:{...cDef.plugins,...(opts.plugins||{})}}});
+  return CHARTS[id];
 }
 
-function heatColor(hrs){
-  if(hrs>10)return'rgba(248,113,113,.18)';
-  if(hrs>8)return'rgba(251,191,36,.18)';
-  if(hrs>5)return'rgba(52,211,153,.12)';
-  if(hrs>0)return'rgba(79,142,247,.10)';
-  return'transparent';
-}
-
-function barHTML(pct,color='#4f8ef7'){
-  const w=Math.min(100,pct*100);
-  return`<div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div><div class="bar-label">${(pct*100).toFixed(0)}%</div></div>`;
-}
-
-function marcaConsumo(m){
-  const total=m.s1+m.s2+m.s3;
-  if(!m.contrat)return{total,pct:null,disp:null};
-  return{total,pct:total/m.contrat,disp:m.contrat-total};
-}
-
-function initMeta(){
-  const m=DATA.meta,k=DATA.kpis;
-  document.getElementById('meta-semana').textContent=m.mes+' · '+m.semana_activa;
+// ── render functions ──────────────────────────────────────────────────────────
+function renderMeta(){
+  const m=DATA.meta,kpis=computeKPIs();
+  const label=S.mes&&S.semana?S.mes+' · '+S.semana:S.mes?S.mes:m.mes+' · '+m.semana_activa;
+  document.getElementById('meta-semana').textContent=label;
   document.getElementById('meta-gen').textContent='Actualizado: '+m.generado;
-  document.getElementById('badge-mes').textContent=m.mes;
-  document.getElementById('badge-perfiles').textContent=k.n_perfiles+' perfiles activos';
-  document.getElementById('badge-sobre').textContent=k.sobre+' sobre-ocupados';
-  document.getElementById('kpi-total').textContent=k.total_horas.toLocaleString('es');
-  document.getElementById('kpi-total-sub').textContent=k.n_semanas+' semanas · '+k.n_perfiles+' perfiles';
-  document.getElementById('kpi-prom').textContent=k.prom_sem.toFixed(1);
-  document.getElementById('kpi-pct').textContent=k.pct_ocup+'%';
-  document.getElementById('kpi-sobre').textContent=k.sobre;
-  document.getElementById('kpi-libres').textContent=k.libres;
-  document.getElementById('kpi-contrat').textContent=k.contrat_total.toLocaleString('es');
+  document.getElementById('badge-mes').textContent=S.mes||m.mes;
+  document.getElementById('badge-perfiles').textContent=kpis.n+' perfiles activos';
+  document.getElementById('badge-sobre').textContent=kpis.sobre+' sobre-ocupados';
+  document.getElementById('kpi-total').textContent=kpis.total.toLocaleString('es');
+  document.getElementById('kpi-total-sub').textContent=(S.semana||'período seleccionado')+' · '+kpis.n+' perfiles';
+  document.getElementById('kpi-prom').textContent=kpis.prom.toFixed(1);
+  document.getElementById('kpi-pct').textContent=kpis.pct.toFixed(1)+'%';
+  document.getElementById('kpi-sobre').textContent=kpis.sobre;
+  document.getElementById('kpi-libres').textContent=kpis.libres;
+  document.getElementById('kpi-contrat').textContent=DATA.kpis.contrat_total.toLocaleString('es');
 }
 
 function buildAlertsList(){
-  const el=document.getElementById('alerts-list');
-  DATA.perfiles.forEach(p=>{
-    const s2=p.s2,pct=s2/40;
+  const el=document.getElementById('alerts-list');el.innerHTML='';
+  activePerfiles().forEach(p=>{
+    const hrs=perfHrs(p),pct=hrs/40;
     let dotClass='dot-gray',barColor='#8892a4';
-    if(s2>48){dotClass='dot-red';barColor=COLORS.red;}
-    else if(s2>44){dotClass='dot-red';barColor=COLORS.orange;}
-    else if(s2>40){dotClass='dot-amber';barColor=COLORS.amber;}
-    else if(s2>=32){dotClass='dot-green';barColor=COLORS.green;}
-    else if(s2>0){barColor=COLORS.blue;}
-    el.innerHTML+=`<div class="alert-row"><div class="alert-dot ${dotClass}"></div><div class="alert-name">${p.nombre}</div><div class="alert-hrs">${s2}h</div><div class="alert-bar"><div class="bar-track" style="max-width:160px"><div class="bar-fill" style="width:${Math.min(100,pct*100)}%;background:${barColor}"></div></div></div>${statusPill(s2)}</div>`;
+    if(hrs>48){dotClass='dot-red';barColor=COLORS.red}
+    else if(hrs>44){dotClass='dot-red';barColor=COLORS.orange}
+    else if(hrs>40){dotClass='dot-amber';barColor=COLORS.amber}
+    else if(hrs>=32){dotClass='dot-green';barColor=COLORS.green}
+    else if(hrs>0){barColor=COLORS.blue}
+    el.innerHTML+=`<div class="alert-row"><div class="alert-dot ${dotClass}"></div><div class="alert-name">${p.nombre}</div><div class="alert-hrs">${fmt1(hrs)}h</div><div class="alert-bar"><div class="bar-track" style="max-width:160px"><div class="bar-fill" style="width:${Math.min(100,pct*100)}%;background:${barColor}"></div></div></div>${statusPill(hrs)}</div>`;
   });
 }
 
 function buildHeatMap(){
-  const el=document.getElementById('heat-map');
-  DATA.perfiles.forEach(p=>{
-    const days=[p.dias.L,p.dias.M,p.dias.X,p.dias.J,p.dias.V],total=p.s2,pct=total/40;
-    let c=COLORS.green;
-    if(pct>1.2)c=COLORS.red;else if(pct>1)c=COLORS.amber;else if(pct<0.01)c='#8892a4';
-    el.innerHTML+=`<div class="heat-grid"><div class="heat-cell name">${p.nombre}</div>${days.map(d=>`<div class="heat-cell" style="background:${heatColor(d)}">${d||'—'}</div>`).join('')}<div class="heat-cell" style="font-weight:600;color:${c}">${total}</div><div class="heat-cell" style="color:${c}">${(pct*100).toFixed(0)}%</div></div>`;
+  const el=document.getElementById('heat-map');el.innerHTML='';
+  activePerfiles().forEach(p=>{
+    const d=perfDias(p),days=[d.L,d.M,d.X,d.J,d.V],total=perfHrs(p),pct=total/40;
+    let c=COLORS.green;if(pct>1.2)c=COLORS.red;else if(pct>1)c=COLORS.amber;else if(pct<0.01)c='#8892a4';
+    el.innerHTML+=`<div class="heat-grid"><div class="heat-cell name">${p.nombre}</div>${days.map(v=>`<div class="heat-cell" style="background:${heatColor(v)}">${v||'—'}</div>`).join('')}<div class="heat-cell" style="font-weight:600;color:${c}">${fmt1(total)}</div><div class="heat-cell" style="color:${c}">${(pct*100).toFixed(0)}%</div></div>`;
   });
 }
 
 function buildTablaEquipo(){
-  const el=document.getElementById('tabla-equipo');
-  DATA.perfiles.forEach(p=>{
-    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="font-weight:600">${fmt1(p.s1)}</td><td class="num">${fmt1(p.s2)}</td><td class="num">${fmt1(p.s1/3)}</td><td>${statusPill(p.s2)}</td><td style="color:#8892a4;font-size:11px">${p.marcas.join(', ')}</td></tr>`;
+  const el=document.getElementById('tabla-equipo');el.innerHTML='';
+  activePerfiles().forEach(p=>{
+    const hrs=perfHrs(p);
+    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="font-weight:600">${fmt1(p.s1)}</td><td class="num">${fmt1(hrs)}</td><td class="num">${fmt1(p.s1/3)}</td><td>${statusPill(hrs)}</td><td style="color:#8892a4;font-size:11px">${p.marcas.join(', ')}</td></tr>`;
   });
 }
 
 function buildTablaMarcas(){
-  const el=document.getElementById('tabla-marcas');
+  const el=document.getElementById('tabla-marcas');el.innerHTML='';
   DATA.marcas.forEach(m=>{
     const{total,pct,disp}=marcaConsumo(m);
+    if(total===0&&!m.contrat)return;
     let e;
     if(pct===null)e='<span class="pill pill-gray">Sin contrato</span>';
     else if(pct>0.95)e='<span class="pill pill-red">Al límite</span>';
@@ -289,34 +356,35 @@ function buildTablaMarcas(){
 }
 
 function buildTablaTipos(){
-  const el=document.getElementById('tabla-tipos');
-  const totalH=DATA.tipos.reduce((a,t)=>a+t.total,0);
+  const el=document.getElementById('tabla-tipos');el.innerHTML='';
+  const totalH=DATA.tipos.reduce((a,t)=>a+tipoHrs(t),0);
   DATA.tipos.forEach(t=>{
-    const pct=t.total/totalH;
+    const th=tipoHrs(t);if(th===0)return;
+    const pct=th/totalH;
     const tend=t.s2>t.s1*1.05?'<span class="delta-up">▲ Subiendo</span>':t.s2<t.s1*0.95?'<span class="delta-down">▼ Bajando</span>':'<span class="delta-flat">→ Estable</span>';
-    el.innerHTML+=`<tr><td style="font-weight:500">${t.tipo}</td><td class="num">${fmt1(t.total)}</td><td class="num">${barHTML(pct)}</td><td class="num">${t.s1}</td><td class="num">${t.s2}</td><td class="num">${t.s3}</td><td>${tend}</td><td><span class="pill pill-gray">${t.clasif}</span></td></tr>`;
+    el.innerHTML+=`<tr><td style="font-weight:500">${t.tipo}</td><td class="num">${fmt1(th)}</td><td class="num">${barHTML(pct)}</td><td class="num">${t.s1}</td><td class="num">${t.s2}</td><td class="num">${t.s3}</td><td>${tend}</td><td><span class="pill pill-gray">${t.clasif}</span></td></tr>`;
   });
 }
 
 function buildTablaSobre(){
-  const el=document.getElementById('tabla-sobre');
-  DATA.perfiles.filter(p=>p.s2>40).sort((a,b)=>b.s2-a.s2).forEach(p=>{
-    const ex=p.s2-40;
-    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="color:#f87171;font-weight:600">${p.s2}</td><td class="num" style="color:#f87171">+${fmt1(ex)}</td><td class="num">${fmtPct(p.s2/40)}</td><td>${statusPill(p.s2)}</td></tr>`;
+  const el=document.getElementById('tabla-sobre');el.innerHTML='';
+  activePerfiles().filter(p=>perfHrs(p)>40).sort((a,b)=>perfHrs(b)-perfHrs(a)).forEach(p=>{
+    const hrs=perfHrs(p),ex=hrs-40;
+    el.innerHTML+=`<tr><td>${p.nombre}</td><td class="num" style="color:#f87171;font-weight:600">${fmt1(hrs)}</td><td class="num" style="color:#f87171">+${fmt1(ex)}</td><td class="num">${fmtPct(hrs/40)}</td><td>${statusPill(hrs)}</td></tr>`;
   });
 }
 
 function buildTablaSub(){
-  const el=document.getElementById('tabla-sub');
-  DATA.marcas.filter(m=>m.contrat&&(m.s1+m.s2+m.s3)/m.contrat<0.5).sort((a,b)=>((a.s1+a.s2+a.s3)/a.contrat)-((b.s1+b.s2+b.s3)/b.contrat)).forEach(m=>{
-    const total=m.s1+m.s2+m.s3,pct=total/m.contrat;
+  const el=document.getElementById('tabla-sub');el.innerHTML='';
+  DATA.marcas.filter(m=>m.contrat&&marcaHrs(m)/m.contrat<0.5).sort((a,b)=>marcaHrs(a)/a.contrat-marcaHrs(b)/b.contrat).forEach(m=>{
+    const total=marcaHrs(m),pct=total/m.contrat;
     const r=pct<0.2?'<span class="pill pill-red">Crítico</span>':pct<0.4?'<span class="pill pill-amber">Alto</span>':'<span class="pill pill-blue">Medio</span>';
     el.innerHTML+=`<tr><td style="font-weight:500">${m.nombre}</td><td class="num">${m.contrat}</td><td class="num">${fmt1(total)}</td><td class="num">${barHTML(pct,COLORS.red)}</td><td>${r}</td></tr>`;
   });
 }
 
 function buildTablaConcentracion(){
-  const el=document.getElementById('tabla-concentracion');
+  const el=document.getElementById('tabla-concentracion');el.innerHTML='';
   DATA.concentracion.forEach(c=>{
     const pct=c.hrsMarca/c.total;
     const r=pct>0.7?'<span class="pill pill-red">Alta dependencia</span>':pct>0.5?'<span class="pill pill-amber">Media</span>':'<span class="pill pill-green">Diversificado</span>';
@@ -324,52 +392,30 @@ function buildTablaConcentracion(){
   });
 }
 
-const cDef={plugins:{legend:{labels:{color:'#8892a4',font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}};
-function mkChart(id,type,data,opts={}){
-  const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...cDef,...opts,plugins:{...cDef.plugins,...(opts.plugins||{})}}});
-}
-
 function buildCharts(){
-  mkChart('chartTipo','doughnut',{labels:DATA.tipos.map(t=>t.tipo),datasets:[{data:DATA.tipos.map(t=>t.total),backgroundColor:PALETTE,borderColor:'#1a1d27',borderWidth:2,hoverOffset:6}]},{cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
+  const act=activePerfiles();
+  const mes=S.mes||DATA.meta.ultimoMes;
+  const semsEnMes=DATA.meta.semanasPorMes[mes]||[];
 
-  const top8=DATA.marcas.slice(0,8);
-  mkChart('chartMarca','bar',{labels:top8.map(m=>m.nombre),datasets:[{label:'Consumidas',data:top8.map(m=>m.s1+m.s2+m.s3),backgroundColor:'#4f8ef7'},{label:'Contratadas',data:top8.map(m=>m.contrat||0),backgroundColor:'rgba(136,146,164,.2)'}]},{scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}});
+  // tipo doughnut
+  const tiposActivos=DATA.tipos.filter(t=>tipoHrs(t)>0);
+  mkChart('chartTipo','doughnut',{labels:tiposActivos.map(t=>t.tipo),datasets:[{data:tiposActivos.map(t=>tipoHrs(t)),backgroundColor:PALETTE,borderColor:'#1a1d27',borderWidth:2,hoverOffset:6}]},{cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
 
-  const semLabels=['Semana 1','Semana 2','Semana 3'];
-  const semTotals=[
-    DATA.perfiles.reduce((a,p)=>{try{return a+(p.sem_hrs?.s1||0)}catch{return a}},0)||349.5,
-    DATA.perfiles.reduce((a,p)=>a+p.s2,0),
-    150.5
-  ];
-  const cap=DATA.kpis.n_perfiles*40;
-  mkChart('chartTendencia','line',{labels:semLabels,datasets:[{label:'Total equipo (hrs)',data:semTotals,borderColor:COLORS.blue,backgroundColor:'rgba(79,142,247,.1)',fill:true,tension:.3,pointRadius:5},{label:`Capacidad (${cap}h)`,data:[cap,cap,cap],borderColor:'rgba(248,113,113,.4)',borderDash:[4,4],pointRadius:0}]});
+  // marca top 8
+  const top8=[...DATA.marcas].sort((a,b)=>marcaHrs(b)-marcaHrs(a)).slice(0,8);
+  mkChart('chartMarca','bar',{labels:top8.map(m=>m.nombre),datasets:[{label:'Consumidas',data:top8.map(m=>marcaHrs(m)),backgroundColor:COLORS.blue},{label:'Contratadas',data:top8.map(m=>m.contrat||0),backgroundColor:'rgba(136,146,164,.2)'}]},{scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}}});
 
-  mkChart('chartEquipoTotal','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:[{label:'Total hrs',data:DATA.perfiles.map(p=>p.s1),backgroundColor:DATA.perfiles.map(p=>p.s1>120?COLORS.red:p.s1>80?COLORS.amber:COLORS.green)}]});
+  // tendencia equipo (semanas del mes activo)
+  const semTotals=semsEnMes.map(s=>Math.round(act.reduce((a,p)=>a+(p.porSemana?.[mes]?.[s]?.total||0),0)*10)/10);
+  const cap=act.length*40;
+  mkChart('chartTendencia','line',{labels:semsEnMes.length?semsEnMes:['Sin datos'],datasets:[{label:'Total equipo (hrs)',data:semTotals,borderColor:COLORS.blue,backgroundColor:'rgba(79,142,247,.1)',fill:true,tension:.3,pointRadius:5},{label:`Capacidad (${cap}h)`,data:semsEnMes.map(()=>cap),borderColor:'rgba(248,113,113,.4)',borderDash:[4,4],pointRadius:0}]});
 
-  mkChart('chartRadar','radar',{labels:['Lunes','Martes','Miércoles','Jueves','Viernes'],datasets:DATA.perfiles.filter(p=>p.s2>0).map((p,i)=>({label:p.nombre.split(' ')[0],data:[p.dias.L,p.dias.M,p.dias.X,p.dias.J,p.dias.V],borderColor:PALETTE[i],backgroundColor:PALETTE[i]+'22',pointRadius:3,borderWidth:1.5}))},{scales:{r:{ticks:{color:'#8892a4',font:{size:10},backdropColor:'transparent'},grid:{color:'#2e3347'},pointLabels:{color:'#8892a4',font:{size:11}}}}});
+  // equipo bar
+  mkChart('chartEquipoTotal','bar',{labels:act.map(p=>p.nombre.split(' ')[0]),datasets:[{label:'Horas período',data:act.map(p=>perfHrs(p)),backgroundColor:act.map(p=>perfHrs(p)>48?COLORS.red:perfHrs(p)>40?COLORS.amber:COLORS.green)}]});
 
-  mkChart('chartMarcaDetalle','bar',{labels:DATA.marcas.filter(m=>m.contrat).map(m=>m.nombre),datasets:[{label:'Consumido',data:DATA.marcas.filter(m=>m.contrat).map(m=>m.s1+m.s2+m.s3),backgroundColor:COLORS.blue},{label:'Contratado',data:DATA.marcas.filter(m=>m.contrat).map(m=>m.contrat),backgroundColor:'rgba(136,146,164,.15)'}]});
+  // radar días
+  mkChart('chartRadar','radar',{labels:['Lunes','Martes','Miércoles','Jueves','Viernes'],datasets:act.map((p,i)=>{const d=perfDias(p);return{label:p.nombre.split(' ')[0],data:[d.L,d.M,d.X,d.J,d.V],borderColor:PALETTE[i%PALETTE.length],backgroundColor:PALETTE[i%PALETTE.length]+'22',pointRadius:3,borderWidth:1.5}})},{scales:{r:{ticks:{color:'#8892a4',font:{size:10},backdropColor:'transparent'},grid:{color:'#2e3347'},pointLabels:{color:'#8892a4',font:{size:11}}}}});
 
-  mkChart('chartTipoBar','bar',{labels:DATA.tipos.map(t=>t.tipo),datasets:[{label:'Sem 1',data:DATA.tipos.map(t=>t.s1),backgroundColor:COLORS.blue+'bb'},{label:'Sem 2',data:DATA.tipos.map(t=>t.s2),backgroundColor:COLORS.teal+'bb'},{label:'Sem 3',data:DATA.tipos.map(t=>t.s3),backgroundColor:COLORS.purple+'bb'}]},{plugins:{legend:{position:'top',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
-
-  const tipoLabels=DATA.tipos.map(t=>t.tipo);
-  mkChart('chartTipoStack','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:tipoLabels.map((tipo,i)=>({label:tipo,data:DATA.perfiles.map(p=>{const t=DATA.tipos.find(x=>x.tipo===tipo);return t?Math.round(t.total/DATA.perfiles.length):0}),backgroundColor:PALETTE[i]+'cc'}))},{scales:{x:{stacked:true,ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{stacked:true,ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}},plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:10},boxWidth:10}}}});
-
-  mkChart('chartTendenciaPersona','line',{labels:['Semana 1 (prom)','Semana activa'],datasets:DATA.perfiles.filter(p=>p.s1>0).map((p,i)=>({label:p.nombre.split(' ')[0],data:[+(p.s1/3).toFixed(1),p.s2],borderColor:PALETTE[i],backgroundColor:'transparent',tension:.3,pointRadius:5,borderWidth:2}))},{scales:{x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'},min:0,max:60}},plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
-
-  const deltas=DATA.perfiles.map(p=>+(p.s2-p.s1/3).toFixed(1));
-  mkChart('chartDelta','bar',{labels:DATA.perfiles.map(p=>p.nombre.split(' ')[0]),datasets:[{label:'Δ prom→sem activa (hrs)',data:deltas,backgroundColor:deltas.map(d=>d>0?COLORS.red+'cc':COLORS.green+'cc')}]});
-
-  const topM=DATA.marcas.slice(0,8);
-  mkChart('chartMarcaSem','bar',{labels:topM.map(m=>m.nombre),datasets:[{label:'Sem 1',data:topM.map(m=>m.s1),backgroundColor:COLORS.blue+'bb'},{label:'Sem 2',data:topM.map(m=>m.s2),backgroundColor:COLORS.teal+'bb'},{label:'Sem 3',data:topM.map(m=>m.s3),backgroundColor:COLORS.purple+'bb'}]},{scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3347'}},y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3347'}}},plugins:{legend:{position:'top',labels:{color:'#8892a4',font:{size:11},boxWidth:10}}}});
-}
-
-document.addEventListener('DOMContentLoaded',()=>{
-  initMeta();buildAlertsList();buildHeatMap();buildTablaEquipo();
-  buildTablaMarcas();buildTablaTipos();buildTablaSobre();
-  buildTablaSub();buildTablaConcentracion();buildCharts();
-});
-</script>
-</body>
-</html>
+  // marcas detalle (consumido vs contratado)
+  const marcasCon=DATA.marcas.filter(m=>m.contrat&&(marcaHrs(m)+m.contrat)>0);
+  mkChart('chartMarcaDetalle','bar',{labels:marcasCon.map(m=>m.nombre),datasets:[{label:'Consumido',data:marcasCon.map(m=>marcaHrs(m)),backgroundColor:COLORS.blue},{label:'Contratado',data:marcasCon.map(m=>m.contrat),backgroundColor:'rgba(1
